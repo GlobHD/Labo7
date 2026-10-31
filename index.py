@@ -29,6 +29,24 @@ def calcular_cifras(es):# aca calculamos cuantas cifras significativas correspon
     return int(math.floor(2 - math.log10(es / 0.5) + 1e-9))
 
 # --- MÉTODOS NUMÉRICOS ---
+def calcular_simpson_13(a, b, n):
+    if n % 2 != 0:
+        return None, "Error: El número de subintervalos (n) debe ser par."
+    if n <= 0:
+        return None, "Error: n debe ser mayor a 0."
+        
+    h = (b - a) / n
+    suma = f(a) + f(b)
+    
+    for i in range(1, n):
+        x_i = a + i * h
+        if i % 2 != 0: # Índices impares se multiplican por 4
+            suma += 4 * f(x_i)
+        else:          # Índices pares se multiplican por 2
+            suma += 2 * f(x_i)
+            
+    integral = (h / 3) * suma
+    return integral, "Éxito"
 def calcular_biseccion(xl, xu, es, max_iter):# aca hacemos la funcion que evaluara el metodo de biseccion
     if xl >= xu:
         return None, 0, 0, "Error: xl debe ser menor que xu."
@@ -151,6 +169,26 @@ def resolver_gauss(A, b, pivoteo):# aca hacemos la funcion que resuelve el siste
     return x, "Éxito"
 
 # --- LÓGICA DE LA INTERFAZ ---
+def ejecutar_integral():
+    escribir(entry_res_integral, "")
+    try:
+        leer_coeficientes()
+        a = leer_numero(entry_a_int, "a (Límite inferior)")
+        b = leer_numero(entry_b_int, "b (Límite superior)")
+        n = leer_numero(entry_n_int, "n (Subintervalos)", entero=True)
+        
+        if n % 2 != 0:
+            raise ValueError("La cantidad de subintervalos (n) debe ser par.")
+            
+        integral, msg = calcular_simpson_13(a, b, n)
+        
+        if integral is not None:
+            escribir(entry_res_integral, format(integral, ".6g"))
+        else:
+            messagebox.showerror("Error", msg)
+            
+    except ValueError as e:
+        messagebox.showerror("Error de entrada", str(e))
 def leer_numero(entry, nombre, entero=False):# aca leemos un campo y avisamos si esta vacio o no es un numero
     texto = entry.get().strip().replace(",", ".")
     if texto == "":
@@ -324,142 +362,168 @@ def ejecutar_gauss():
     else:
         for i in range(4):
             escribir(entries_x[i], format(x[i], ".6g"))
-
 # --- INTERFAZ GRÁFICA (GUI) ---
 ventana = tk.Tk()
 ventana.title("Laboratorio VI.1 - Cálculo numérico")
-ventana.geometry("850x680")
+ventana.geometry("860x780")
+ventana.resizable(False, False)
 
-# Marco para los coeficientes del polinomio
-frame_pol = tk.LabelFrame(ventana, text="Coeficientes del polinomio", padx=10, pady=5)
+# 1. Coeficientes
+frame_pol = tk.LabelFrame(ventana, text="Coeficientes del polinomio")
 frame_pol.pack(fill="x", padx=10, pady=5)
 
 entries_coef = []
 for i in range(7):
-    tk.Label(frame_pol, text="a" + str(6 - i)).grid(row=1, column=i)
-    e = tk.Entry(frame_pol, width=6, justify="center")
-    e.grid(row=0, column=i, padx=3)
+    e = tk.Entry(frame_pol, width=8, justify="center")
+    e.grid(row=0, column=i, padx=5, pady=(10, 0))
     entries_coef.append(e)
-tk.Button(frame_pol, text="Borrar", command=borrar_coef).grid(row=0, column=8, padx=10)
-tk.Button(frame_pol, text="Valores de prueba", command=valores_prueba_coef).grid(row=1, column=8, padx=10)
+    tk.Label(frame_pol, text=f"a{6-i}").grid(row=1, column=i, pady=(0, 10))
 
-# Marco para Cálculo de una raíz
-frame_raiz = tk.LabelFrame(ventana, text="Cálculo de una raíz", padx=10, pady=10)
+tk.Button(frame_pol, text="Borrar", width=15, command=borrar_coef).grid(row=0, column=8, padx=20, pady=(10, 0))
+tk.Button(frame_pol, text="Valores de prueba", width=15, command=valores_prueba_coef).grid(row=1, column=8, padx=20, pady=(0, 10))
+
+# 2. Raíz
+frame_raiz = tk.LabelFrame(ventana, text="Cálculo de una raíz")
 frame_raiz.pack(fill="x", padx=10, pady=5)
 
-# Selección de Método
+# Fila 0
+tk.Label(frame_raiz, text="Método:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
 var_metodo = tk.StringVar(value="Bisección")
-tk.Label(frame_raiz, text="Método:").grid(row=0, column=0, sticky="e")
 tk.Radiobutton(frame_raiz, text="Bisección", variable=var_metodo, value="Bisección", command=actualizar_metodo).grid(row=0, column=1)
 tk.Radiobutton(frame_raiz, text="Newton-Raphson", variable=var_metodo, value="Newton-Raphson", command=actualizar_metodo).grid(row=0, column=2)
 tk.Radiobutton(frame_raiz, text="Secante", variable=var_metodo, value="Secante", command=actualizar_metodo).grid(row=0, column=3)
 
-# Valores iniciales
+tk.Label(frame_raiz, text="Raíz:").grid(row=0, column=5, sticky="e", padx=(40, 5))
+entry_res_raiz = tk.Entry(frame_raiz, width=20, state="readonly")
+entry_res_raiz.grid(row=0, column=6)
+
+# Fila 1
 label_xl = tk.Label(frame_raiz, text="xl:")
-label_xl.grid(row=1, column=0, sticky="e", pady=5)
+label_xl.grid(row=1, column=0, sticky="e", padx=5, pady=5)
 entry_xl = tk.Entry(frame_raiz, width=10)
 entry_xl.grid(row=1, column=1, sticky="w")
 
 label_xu = tk.Label(frame_raiz, text="xu:")
-label_xu.grid(row=1, column=2, sticky="e")
+label_xu.grid(row=1, column=2, sticky="e", padx=5)
 entry_xu = tk.Entry(frame_raiz, width=10)
 entry_xu.grid(row=1, column=3, sticky="w")
 
-# Criterio de parada
+tk.Label(frame_raiz, text="Iteraciones:").grid(row=1, column=5, sticky="e", padx=(40, 5))
+entry_res_iter = tk.Entry(frame_raiz, width=20, state="readonly")
+entry_res_iter.grid(row=1, column=6)
+
+# Botón central Raíz
+tk.Button(frame_raiz, text="Calcular", width=10, command=ejecutar_calculo_raiz).grid(row=1, column=4, rowspan=2, padx=10)
+
+# Fila 2
 var_criterio = tk.StringVar(value="es")
 tk.Radiobutton(frame_raiz, text="εs (%):", variable=var_criterio, value="es").grid(row=2, column=0, sticky="e")
-entry_es = tk.Entry(frame_raiz, width=8)
+entry_es = tk.Entry(frame_raiz, width=10)
 entry_es.grid(row=2, column=1, sticky="w")
 entry_es.insert(0, "0.5")
 
 tk.Radiobutton(frame_raiz, text="Cifras signif.:", variable=var_criterio, value="cifras").grid(row=2, column=2, sticky="e")
-entry_cifras = tk.Entry(frame_raiz, width=8)
+entry_cifras = tk.Entry(frame_raiz, width=10)
 entry_cifras.grid(row=2, column=3, sticky="w")
 entry_cifras.insert(0, "4")
 
-tk.Label(frame_raiz, text="Máx. iter.:").grid(row=2, column=4, sticky="e")
-entry_max_iter = tk.Entry(frame_raiz, width=8)
-entry_max_iter.grid(row=2, column=5, sticky="w")
+tk.Label(frame_raiz, text="εa (%):").grid(row=2, column=5, sticky="e", padx=(40, 5))
+entry_res_ea = tk.Entry(frame_raiz, width=20, state="readonly")
+entry_res_ea.grid(row=2, column=6)
+
+# Fila 3
+tk.Label(frame_raiz, text="Máx. iter.:").grid(row=3, column=2, sticky="e", padx=5, pady=5)
+entry_max_iter = tk.Entry(frame_raiz, width=10)
+entry_max_iter.grid(row=3, column=3, sticky="w")
 entry_max_iter.insert(0, "100")
 
-# Botón Calcular
-tk.Button(frame_raiz, text="Calcular", command=ejecutar_calculo_raiz).grid(row=1, column=4, columnspan=2, padx=10)
+tk.Label(frame_raiz, text="f(raíz):").grid(row=3, column=5, sticky="e", padx=(40, 5))
+entry_res_f = tk.Entry(frame_raiz, width=20, state="readonly")
+entry_res_f.grid(row=3, column=6)
 
-# Resultados
-tk.Label(frame_raiz, text="Raíz:").grid(row=0, column=6, sticky="e")
-entry_res_raiz = tk.Entry(frame_raiz, width=15, state="readonly")
-entry_res_raiz.grid(row=0, column=7)
-
-tk.Label(frame_raiz, text="Iteraciones:").grid(row=1, column=6, sticky="e")
-entry_res_iter = tk.Entry(frame_raiz, width=15, state="readonly")
-entry_res_iter.grid(row=1, column=7)
-
-tk.Label(frame_raiz, text="εa (%):").grid(row=2, column=6, sticky="e")
-entry_res_ea = tk.Entry(frame_raiz, width=15, state="readonly")
-entry_res_ea.grid(row=2, column=7)
-
-tk.Label(frame_raiz, text="f(raíz):").grid(row=3, column=6, sticky="e")
-entry_res_f = tk.Entry(frame_raiz, width=15, state="readonly")
-entry_res_f.grid(row=3, column=7)
-
-# Marco para la derivada
-frame_deriv = tk.LabelFrame(ventana, text="Cálculo de la derivada primera (diferencia centrada)", padx=10, pady=5)
+# 3. Derivada
+frame_deriv = tk.LabelFrame(ventana, text="Cálculo de la derivada primera (diferencia centrada)")
 frame_deriv.pack(fill="x", padx=10, pady=5)
 
-tk.Label(frame_deriv, text="x0:").grid(row=0, column=0)
-entry_x_deriv = tk.Entry(frame_deriv, width=8)
+tk.Label(frame_deriv, text="x0:").grid(row=0, column=0, padx=5, pady=15)
+entry_x_deriv = tk.Entry(frame_deriv, width=10)
 entry_x_deriv.grid(row=0, column=1)
 entry_x_deriv.insert(0, "1")
 
-tk.Label(frame_deriv, text="dx:").grid(row=0, column=2, padx=(10, 0))
-entry_h_deriv = tk.Entry(frame_deriv, width=8)
+tk.Label(frame_deriv, text="dx:").grid(row=0, column=2, padx=(20, 5))
+entry_h_deriv = tk.Entry(frame_deriv, width=10)
 entry_h_deriv.grid(row=0, column=3)
 entry_h_deriv.insert(0, "0.13")
 
-tk.Button(frame_deriv, text="Calcular", command=ejecutar_derivada).grid(row=0, column=4, padx=15)
-tk.Label(frame_deriv, text="Derivada f'(x0):").grid(row=0, column=5)
-entry_res_deriv = tk.Entry(frame_deriv, width=15, state="readonly")
+tk.Button(frame_deriv, text="Calcular", width=10, command=ejecutar_derivada).grid(row=0, column=4, padx=40)
+
+tk.Label(frame_deriv, text="Derivada f'(x0):").grid(row=0, column=5, padx=5)
+entry_res_deriv = tk.Entry(frame_deriv, width=20, state="readonly")
 entry_res_deriv.grid(row=0, column=6, padx=5)
 
-# Marco para el sistema de ecuaciones
-frame_sis = tk.LabelFrame(ventana, text="Resolución de un sistema de 4 ecuaciones (eliminación gaussiana)", padx=10, pady=5)
+# 4. Sistema Gauss
+frame_sis = tk.LabelFrame(ventana, text="Resolución de un sistema de 4 ecuaciones (eliminación gaussiana)")
 frame_sis.pack(fill="x", padx=10, pady=5)
 
-for j, nombre in enumerate(["x1", "x2", "x3", "x4", "", "b"]):
-    tk.Label(frame_sis, text=nombre).grid(row=0, column=j)
+for j, nombre in enumerate(["x1", "x2", "x3", "x4", "b"]):
+    tk.Label(frame_sis, text=nombre).grid(row=0, column=j if j < 4 else j+1, pady=5)
 
 entries_A = []
 entries_b = []
 for i in range(4):
     fila = []
     for j in range(4):
-        e = tk.Entry(frame_sis, width=6, justify="center")
-        e.grid(row=i + 1, column=j, padx=2, pady=2)
+        e = tk.Entry(frame_sis, width=8, justify="center")
+        e.grid(row=i + 1, column=j, padx=5, pady=3)
         fila.append(e)
     entries_A.append(fila)
     tk.Label(frame_sis, text="|").grid(row=i + 1, column=4)
-    e = tk.Entry(frame_sis, width=6, justify="center")
-    e.grid(row=i + 1, column=5, padx=2, pady=2)
+    e = tk.Entry(frame_sis, width=8, justify="center")
+    e.grid(row=i + 1, column=5, padx=5, pady=3)
     entries_b.append(e)
 
 var_pivoteo = tk.StringVar(value="sin")
-tk.Radiobutton(frame_sis, text="Sin pivoteo", variable=var_pivoteo, value="sin").grid(row=1, column=6, sticky="w", padx=15)
-tk.Radiobutton(frame_sis, text="Con pivoteo parcial", variable=var_pivoteo, value="con").grid(row=2, column=6, sticky="w", padx=15)
-tk.Button(frame_sis, text="Calcular", width=12, command=ejecutar_gauss).grid(row=3, column=6)
-tk.Button(frame_sis, text="Borrar", width=12, command=borrar_sistema).grid(row=4, column=6)
-tk.Button(frame_sis, text="Valores de prueba", width=12, command=valores_prueba_sistema).grid(row=5, column=6)
+tk.Radiobutton(frame_sis, text="Sin pivoteo", variable=var_pivoteo, value="sin").grid(row=1, column=6, sticky="w", padx=20)
+tk.Radiobutton(frame_sis, text="Con pivoteo parcial", variable=var_pivoteo, value="con").grid(row=2, column=6, sticky="w", padx=20)
+
+tk.Button(frame_sis, text="Calcular", width=15, command=ejecutar_gauss).grid(row=3, column=6, padx=20)
+tk.Button(frame_sis, text="Borrar", width=15, command=borrar_sistema).grid(row=4, column=6, padx=20)
+tk.Button(frame_sis, text="Valores de prueba", width=15, command=valores_prueba_sistema).grid(row=5, column=6, padx=20, pady=(0, 10))
 
 entries_x = []
 for i in range(4):
-    tk.Label(frame_sis, text="x" + str(i + 1) + " =").grid(row=i + 1, column=7, padx=(20, 0))
-    e = tk.Entry(frame_sis, width=14, state="readonly")
-    e.grid(row=i + 1, column=8)
+    tk.Label(frame_sis, text=f"x{i+1} =").grid(row=i + 1, column=7, padx=(20, 5))
+    e = tk.Entry(frame_sis, width=15, state="readonly")
+    e.grid(row=i + 1, column=8, padx=5)
     entries_x.append(e)
+
+# 5. Integral
+frame_int = tk.LabelFrame(ventana, text="Cálculo de la integral definida (Simpson 1/3 compuesta)")
+frame_int.pack(fill="x", padx=10, pady=5)
+
+tk.Label(frame_int, text="Intervalo de integración:  a:").grid(row=0, column=0, pady=10, padx=5)
+entry_a_int = tk.Entry(frame_int, width=10, justify="center")
+entry_a_int.grid(row=0, column=1)
+entry_a_int.insert(0, "0")
+
+tk.Label(frame_int, text="b:").grid(row=0, column=2, padx=(10, 5))
+entry_b_int = tk.Entry(frame_int, width=10, justify="center")
+entry_b_int.grid(row=0, column=3)
+entry_b_int.insert(0, "2")
+
+tk.Label(frame_int, text="Cantidad de subintervalos (par):").grid(row=1, column=0, columnspan=2, sticky="e", pady=(0, 10))
+entry_n_int = tk.Entry(frame_int, width=10, justify="center")
+entry_n_int.grid(row=1, column=2, columnspan=2, sticky="w", padx=(10, 0), pady=(0, 10))
+entry_n_int.insert(0, "2")
+
+tk.Button(frame_int, text="Calcular", width=10, command=ejecutar_integral).grid(row=0, column=4, rowspan=2, padx=40)
+
+tk.Label(frame_int, text="Integral definida:").grid(row=0, column=5, rowspan=2, sticky="e", padx=5)
+entry_res_integral = tk.Entry(frame_int, width=20, state="readonly")
+entry_res_integral.grid(row=0, column=6, rowspan=2, padx=5)
 
 # Valores de prueba iniciales
 valores_prueba_coef()
 valores_prueba_sistema()
-
-# Falta el punto 4 (integral con Simpson 1/3 compuesta)
 
 ventana.mainloop()
